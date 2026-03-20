@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waleed AI - Dashboard</title>
+    <style>
+        :root {
+            --sidebar-bg: #202123;
+            --main-bg: #343541;
+            --text-light: #ececf1;
+            --border-color: #4d4d4f;
+            --primary-blue: #10a37f;
+            --user-msg: #444654;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: var(--main-bg);
+            color: var(--text-light);
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .new-chat-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 12px;
+            text-align: left;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: 0.2s;
+        }
+        .new-chat-btn:hover { background: #2b2c2f; }
+
+        #history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-item:hover { background: #2b2c2f; }
+
+        .settings-btn {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: auto;
+        }
+        .settings-btn:hover { background: #2b2c2f; }
+
+        /* --- Main Chat Area --- */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-row {
+            padding: 25px 20%;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .ai-row { background-color: var(--main-bg); }
+        .user-row { background-color: var(--user-msg); }
+
+        .message-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* --- Input Area --- */
+        #input-container {
+            padding: 20px 20%;
+            background: linear-gradient(transparent, var(--main-bg) 20%);
+        }
+
+        .input-box {
+            position: relative;
+            background: #40414f;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 15px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+            padding-right: 50px;
+        }
+
+        #send-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary-blue);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* --- Settings Modal --- */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        .modal {
+            background: #2b2c2f;
+            padding: 30px;
+            border-radius: 10px;
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal input, .modal textarea {
+            background: #40414f;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .modal-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar">
+        <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
+        <div id="history-list"></div>
+        <div class="settings-btn" onclick="toggleModal(true)">
+            <span>⚙️</span> Settings
+        </div>
+    </aside>
+
+    <main id="main-content">
+        <div id="chat-window">
+            <div class="message-row ai-row">
+                <div class="message-content">Hello! I am Waleed AI. Open settings at the bottom left to configure your OpenRouter key.</div>
+            </div>
+        </div>
+
+        <div id="input-container">
+            <div class="input-box">
+                <input type="text" id="user-input" placeholder="Send a message..." onkeypress="checkEnter(event)">
+                <button id="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-overlay">
+        <div class="modal">
+            <h2>Waleed AI Settings</h2>
+            <label>OpenRouter API Key</label>
+            <input type="password" id="api-key" placeholder="sk-or-v1-...">
+            
+            <label>Model ID</label>
+            <input type="text" id="model-id" value="google/gemini-2.0-flash-exp:free">
+            
+            <label>System Prompt</label>
+            <textarea id="system-prompt" rows="4">You are Waleed AI, a helpful and professional assistant.</textarea>
+            
+            <div class="modal-btns">
+                <button onclick="toggleModal(false)" style="background:#666">Cancel</button>
+                <button onclick="saveSettings()" style="background:var(--primary-blue)">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChatHistory = [];
+        let allSavedChats = JSON.parse(localStorage.getItem('waleed_ai_chats')) || [];
+
+        // --- UI Logic ---
+        function toggleModal(show) {
+            document.getElementById('modal-overlay').style.display = show ? 'flex' : 'none';
+        }
+
+        function checkEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+        function saveSettings() {
+            localStorage.setItem('or_key', document.getElementById('api-key').value);
+            localStorage.setItem('or_model', document.getElementById('model-id').value);
+            localStorage.setItem('or_sys', document.getElementById('system-prompt').value);
+            toggleModal(false);
+            alert("Settings Saved!");
+        }
+
+        // --- Chat Logic ---
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            const apiKey = localStorage.getItem('or_key');
+            
+            if (!text) return;
+            if (!apiKey) { alert("Please add your API key in Settings!"); return; }
+
+            // Add User Message
+            appendUI(text, 'user-row');
+            currentChatHistory.push({ role: "user", content: text });
+            input.value = "";
+
+            // Add AI Placeholder
+            const tempId = "ai-" + Date.now();
+            appendUI("...", 'ai-row', tempId);
+
+            try {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "model": localStorage.getItem('or_model') || "google/gemini-2.0-flash-exp:free",
+                        "messages": [
+                            { role: "system", content: localStorage.getItem('or_sys') },
+                            ...currentChatHistory
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                const aiText = data.choices[0].message.content;
+                
+                document.getElementById(tempId).innerText = aiText;
+                currentChatHistory.push({ role: "assistant", content: aiText });
+                
+                // Save to sidebar
+                updateHistory(text);
+
+            } catch (err) {
+                document.getElementById(tempId).innerText = "Error: " + err.message;
+            }
+        }
+
+        function appendUI(text, className, id = null) {
+            const win = document.getElementById('chat-window');
+            const row = document.createElement('div');
+            row.className = `message-row ${className}`;
+            const content = document.createElement('div');
+            content.className = "message-content";
+            content.innerText = text;
+            if(id) content.id = id;
+            row.appendChild(content);
+            win.appendChild(row);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        function startNewChat() {
+            document.getElementById('chat-window').innerHTML = '';
+            currentChatHistory = [];
+            appendUI("New Chat Started. How can Waleed AI help you?", "ai-row");
+        }
+
+        // --- History Sidebar Logic ---
+        function updateHistory(firstMsg) {
+            const chatObj = { id: Date.now(), title: firstMsg, history: [...currentChatHistory] };
+            
+            // Check if this chat already exists to update it, or add new
+            const index = allSavedChats.findIndex(c => c.title === firstMsg);
+            if(index === -1) {
+                allSavedChats.unshift(chatObj);
+                localStorage.setItem('waleed_ai_chats', JSON.stringify(allSavedChats));
+                renderSidebar();
+            }
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            allSavedChats.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerText = chat.title;
+                div.onclick = () => loadChat(chat);
+                list.appendChild(div);
+            });
+        }
+
+        function loadChat(chatObj) {
+            document.getElementById('chat-window').innerHTML = '';
+            currentChatHistory = chatObj.history;
+            currentChatHistory.forEach(m => {
+                appendUI(m.content, m.role === 'user' ? 'user-row' : 'ai-row');
+            });
+        }
+
+        // Load data on start
+        window.onload = () => {
+            renderSidebar();
+            document.getElementById('api-key').value = localStorage.getItem('or_key') || "";
+            document.getElementById('model-id').value = localStorage.getItem('or_model') || "google/gemini-2.0-flash-exp:free";
+            document.getElementById('system-prompt').value = localStorage.getItem('or_sys') || "You are Waleed AI, a helpful and professional assistant.";
+        };
+    </script>
+</body>
+</html>
